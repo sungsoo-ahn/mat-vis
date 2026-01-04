@@ -1,0 +1,16 @@
+# Configuration for adsorbate isolation from MOF structures
+output_dir: "data/isolate_adsorbate"
+
+# Input MOF file containing framework + adsorbates
+input_file: "data/sample/mof.cif"
+
+# Isolation parameters
+isolation:
+  # Target number of disconnected components
+  # (1 framework + N adsorbates = N+1 components)
+  target_components: 3
+
+  # Search range for distance cutoff multiplier
+  # Multiplier applied to sum of covalent radii for bond detection
+  cutoff_min: 0.5
+  cutoff_max: 2.0
