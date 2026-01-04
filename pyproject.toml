@@ -1,0 +1,15 @@
+[project]
+name = "ai-computing-grant"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "ase>=3.27.0",
+    "ipympl>=0.9.8",
+    "ipywidgets>=8.1.8",
+    "jupyterlab>=4.5.1",
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.0",
+    "pillow>=12.1.0",
+    "scipy>=1.16.3",
+]

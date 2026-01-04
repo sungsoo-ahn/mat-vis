@@ -1,0 +1,28 @@
+data_image0
+_chemical_formula_structural       CO2
+_chemical_formula_sum              "C1 O2"
+_cell_length_a       6.738759994506836
+_cell_length_b       15.285600177558718
+_cell_length_c       15.369600222056038
+_cell_angle_alpha    61.44840132182279
+_cell_angle_beta     80.58240025275052
+_cell_angle_gamma    97.61580010620358
+
+_space_group_name_H-M_alt    "P 1"
+_space_group_IT_number       1
+
+loop_
+  _space_group_symop_operation_xyz
+  'x, y, z'
+
+loop_
+  _atom_site_type_symbol
+  _atom_site_label
+  _atom_site_symmetry_multiplicity
+  _atom_site_fract_x
+  _atom_site_fract_y
+  _atom_site_fract_z
+  _atom_site_occupancy
+  C   C1        1.0  0.2398999191761913  0.7957110463561216  0.3548901684585097  1.0000
+  O   O1        1.0  0.4019995437434607  0.8134549087427966  0.36985887205939555  1.0000
+  O   O2        1.0  0.07977489609276249  0.778634196719207  0.3378318675371786  1.0000
