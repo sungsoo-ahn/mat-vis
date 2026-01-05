@@ -1,36 +1,29 @@
-# Static structure visualization config for MOF CIF file
-output_dir: "data/viz_structure"
+# MOF structure visualization
+output_dir: "data/mof/structure"
 
-# Color schemes (cool_gray + mint_coral is default)
+# Color schemes
 framework_scheme: "cool_gray"
 adsorbate_scheme: "mint_coral"
 boundary_scheme: "thin_dark"
 
-# Input files to visualize (can be list or single file)
+# Input file
 input_files:
   - "data/sample/mof.cif"
 
 # Visualization settings
 visualization:
-  # Separate and highlight adsorbate atoms
   separate_adsorbate: true
   plot_separate: true
-
-  # Use connectivity-based isolation for MOFs
   isolation_method: "connectivity"
-
-  # Simple tiling [nx, ny, nz] or full supercell_matrix for non-diagonal
-  tiling: [1, 2, 2]
-
-  # Camera view angles (optimized for MOF visualization)
+  tiling: [1, 4, 4]
   view_elev: -10
   view_azim: 0
-
-  # Resolution
   dpi: 200
+  adsorbate_index: 1
+  adsorbate_shift: [0, 1, 2]
 
-# Isolation parameters for connectivity-based separation
+# Isolation parameters
 isolation:
-  target_components: 3  # 1 framework + N adsorbates
+  target_components: 3
   cutoff_min: 0.5
   cutoff_max: 2.0

@@ -1,7 +1,5 @@
-# Unified config for MOF visualization (works with both structure and diffusion)
-output_dir: "data/viz_mof_diffusion"
-
-# Visualization mode: mof or catalyst
+# MOF diffusion visualization
+output_dir: "data/mof/diffusion"
 mode: "mof"
 
 # Color schemes
@@ -9,14 +7,14 @@ framework_scheme: "cool_gray"
 adsorbate_scheme: "mint_coral"
 boundary_scheme: "thin_dark"
 
-# Random seed for reproducibility
+# Random seed
 random_seed: 42
 
 # Input file
 input_files:
   - "data/sample/mof.cif"
 
-# Visualization settings (shared with structure_visualization)
+# Visualization settings
 visualization:
   separate_adsorbate: true
   plot_separate: false
@@ -28,22 +26,20 @@ visualization:
   adsorbate_index: 1
   adsorbate_shift: [0, 1, 2]
 
-# Isolation parameters for connectivity-based separation
+# Isolation parameters
 isolation:
   target_components: 3
   cutoff_min: 0.5
   cutoff_max: 2.0
 
-# Diffusion-specific settings
+# Diffusion settings
 trajectory:
   num_steps: 30
   noise_scale: 1.5
   fixed_adsorbate: true
 
-# Output settings
 create_gif: true
 
-# Animation settings
 animation:
   fps: 20
   pause_frames: 40

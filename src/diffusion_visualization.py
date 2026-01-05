@@ -18,16 +18,7 @@ sys.path.insert(0, str(project_root))
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from matplotlib.lines import Line2D
-from ase.io import read
-from ase.build import make_supercell
-import yaml
 
-from src.utils import (
-    get_framework_colors,
-    get_adsorbate_colors,
-    get_boundary_style,
-)
 from src.rendering import render_structure, set_axis_limits_with_margin
 from src.isolate_adsorbate import load_and_isolate
 
@@ -315,154 +306,42 @@ def main():
         print("Usage: python src/diffusion_visualization.py <config.yaml>")
         sys.exit(1)
 
-    config_path = sys.argv[1]
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
+    from src.config import load_config, parse_diffusion_config
+
+    config = load_config(sys.argv[1])
+    cfg = parse_diffusion_config(config)
 
     # Setup output directory
-    output_dir = Path(config['output_dir'])
-    figures_dir = output_dir / 'figures'
-    figures_dir.mkdir(parents=True, exist_ok=True)
-
-    # Get color schemes
-    framework_colors = get_framework_colors(config.get('framework_scheme'))
-    adsorbate_colors = get_adsorbate_colors(config.get('adsorbate_scheme'))
-    boundary_style = get_boundary_style(config.get('boundary_scheme'))
+    cfg.figures_dir.mkdir(parents=True, exist_ok=True)
 
     # Set random seed
-    np.random.seed(config.get('random_seed', 42))
+    np.random.seed(cfg.random_seed)
 
-    # Get visualization settings (shared format with structure_visualization)
-    vis_config = config.get('visualization', {})
+    if cfg.input_file is None:
+        raise ValueError("input_file, input_files, or mode.input_file is required")
 
-    # Mode selection
-    mode = config.get('mode', 'mof')
-    create_gif = config.get('create_gif', False)
-    plot_separate = config.get('plot_separate', vis_config.get('plot_separate', False))
-    dpi = config.get('dpi', vis_config.get('dpi', 200))
+    print("=" * 60)
+    print(f"Diffusion Visualization - {cfg.mode.upper()}")
+    print("=" * 60)
 
-    # Get isolation settings (can be in visualization or top-level)
-    isolation_method = config.get('isolation_method', vis_config.get('isolation_method', 'element'))
-    isolation_config = config.get('isolation', {})
+    # Load and isolate adsorbates
+    slab_pos, slab_nums, ads_pos, ads_nums, formula = load_and_isolate(
+        file_path=cfg.input_file,
+        method=cfg.isolation_method,
+        supercell_matrix=cfg.supercell_matrix,
+        isolation_config=cfg.isolation_config,
+        center_adsorbate=(cfg.mode == "catalyst"),
+        adsorbate_shift=cfg.adsorbate_shift,
+        adsorbate_index=cfg.adsorbate_index,
+        verbose=False
+    )
 
-    # Get common visualization settings from visualization section
-    view_elev = vis_config.get('view_elev')
-    view_azim = vis_config.get('view_azim')
-
-    # Get supercell matrix (support tiling shorthand)
-    supercell_matrix = vis_config.get('supercell_matrix')
-    tiling = vis_config.get('tiling')
-    if tiling is not None and supercell_matrix is None:
-        nx, ny, nz = tiling
-        supercell_matrix = [[nx, 0, 0], [0, ny, 0], [0, 0, nz]]
-
-    # Get adsorbate settings from visualization section
-    ads_shift = vis_config.get('adsorbate_shift')
-    if ads_shift is not None:
-        ads_shift = tuple(ads_shift)
-    ads_index = vis_config.get('adsorbate_index')
-
-    # Get input file (support both formats)
-    input_file = config.get('input_file')
-    if isinstance(config.get('input_files'), list) and len(config['input_files']) > 0:
-        input_file = config['input_files'][0]
-
-    if mode == 'mof':
-        print("=" * 60)
-        print("Diffusion Visualization - MOF with Adsorbate")
-        print("=" * 60)
-
-        # Override with mode-specific settings if present (backwards compatibility)
-        mof_cfg = config.get('mof', {})
-        if view_elev is None:
-            view_elev = mof_cfg.get('view_elev', -10)
-        if view_azim is None:
-            view_azim = mof_cfg.get('view_azim', 0)
-        if supercell_matrix is None:
-            tiling = mof_cfg.get('tiling')
-            if tiling is not None:
-                nx, ny, nz = tiling
-                supercell_matrix = [[nx, 0, 0], [0, ny, 0], [0, 0, nz]]
-            else:
-                supercell_matrix = mof_cfg.get('supercell_matrix')
-        if input_file is None:
-            input_file = mof_cfg.get('input_file')
-        if ads_shift is None:
-            ads_shift = mof_cfg.get('adsorbate_shift')
-            if ads_shift is not None:
-                ads_shift = tuple(ads_shift)
-        if ads_index is None:
-            ads_index = mof_cfg.get('adsorbate_index')
-
-        if input_file is None:
-            raise ValueError("input_file, input_files, or mof.input_file is required")
-
-        slab_pos, slab_nums, ads_pos, ads_nums, formula = load_and_isolate(
-            file_path=input_file,
-            method=isolation_method,
-            supercell_matrix=supercell_matrix,
-            isolation_config=isolation_config,
-            center_adsorbate=False,
-            adsorbate_shift=ads_shift,
-            adsorbate_index=ads_index,
-            verbose=False
-        )
-
-        print(f"\nFormula: {formula}")
-        print(f"Framework atoms: {len(slab_pos)}")
-        print(f"Adsorbate atoms: {len(ads_pos)}")
-
-    elif mode == 'catalyst':
-        print("=" * 60)
-        print("Diffusion Visualization - Catalyst")
-        print("=" * 60)
-
-        # Override with mode-specific settings if present (backwards compatibility)
-        cat_cfg = config.get('catalyst', {})
-        if view_elev is None:
-            view_elev = cat_cfg.get('view_elev', 35)
-        if view_azim is None:
-            view_azim = cat_cfg.get('view_azim', -50)
-        if supercell_matrix is None:
-            tiling = cat_cfg.get('tiling')
-            if tiling is not None:
-                nx, ny, nz = tiling
-                supercell_matrix = [[nx, 0, 0], [0, ny, 0], [0, 0, nz]]
-            else:
-                supercell_matrix = cat_cfg.get('supercell_matrix')
-        if input_file is None:
-            input_file = cat_cfg.get('input_file') or cat_cfg.get('catalyst_file')
-        if ads_shift is None:
-            ads_shift = cat_cfg.get('adsorbate_shift')
-            if ads_shift is not None:
-                ads_shift = tuple(ads_shift)
-        if ads_index is None:
-            ads_index = cat_cfg.get('adsorbate_index')
-
-        if input_file is None:
-            raise ValueError("input_file, input_files, or catalyst.input_file is required")
-
-        slab_pos, slab_nums, ads_pos, ads_nums, formula = load_and_isolate(
-            file_path=input_file,
-            method=isolation_method,
-            supercell_matrix=supercell_matrix,
-            isolation_config=isolation_config,
-            center_adsorbate=True,
-            adsorbate_shift=ads_shift,
-            adsorbate_index=ads_index,
-            verbose=False
-        )
-
-        print(f"\nFormula: {formula}")
-        print(f"Slab atoms: {len(slab_pos)}")
-        print(f"Adsorbate atoms: {len(ads_pos)}")
-
-    else:
-        print(f"Unknown mode: {mode}")
-        sys.exit(1)
+    print(f"\nFormula: {formula}")
+    print(f"Framework atoms: {len(slab_pos)}")
+    print(f"Adsorbate atoms: {len(ads_pos)}")
 
     # Generate trajectory
-    traj_cfg = config.get('trajectory', {})
+    traj_cfg = cfg.trajectory_config
     fixed_adsorbate = traj_cfg.get('fixed_adsorbate', True)
     print("\nGenerating diffusion trajectory...")
     slab_traj, ads_traj, times = create_conditional_trajectory(
@@ -473,40 +352,46 @@ def main():
     )
 
     # Generate frames
-    print(f"\nGenerating trajectory frames (elev={view_elev}, azim={view_azim}, dpi={dpi})...")
-    output_prefix = str(figures_dir / f"{mode}_diffusion")
+    print(f"\nGenerating trajectory frames (elev={cfg.view_elev}, azim={cfg.view_azim}, dpi={cfg.dpi})...")
+    output_prefix = str(cfg.figures_dir / f"{cfg.mode}_diffusion")
 
-    if plot_separate:
-        save_separate_trajectory_frames(slab_traj, slab_nums, ads_traj, ads_nums, times,
-                                        output_prefix=output_prefix,
-                                        view_elev=view_elev, view_azim=view_azim, dpi=dpi,
-                                        framework_colors=framework_colors,
-                                        adsorbate_colors=adsorbate_colors,
-                                        boundary_style=boundary_style)
+    if cfg.plot_separate:
+        save_separate_trajectory_frames(
+            slab_traj, slab_nums, ads_traj, ads_nums, times,
+            output_prefix=output_prefix,
+            view_elev=cfg.view_elev, view_azim=cfg.view_azim, dpi=cfg.dpi,
+            framework_colors=cfg.framework_colors,
+            adsorbate_colors=cfg.adsorbate_colors,
+            boundary_style=cfg.boundary_style
+        )
     else:
-        save_trajectory_frames(slab_traj, slab_nums, ads_traj, ads_nums, times,
-                              output_prefix=output_prefix,
-                              view_elev=view_elev, view_azim=view_azim, dpi=dpi,
-                              framework_colors=framework_colors,
-                              adsorbate_colors=adsorbate_colors,
-                              boundary_style=boundary_style)
+        save_trajectory_frames(
+            slab_traj, slab_nums, ads_traj, ads_nums, times,
+            output_prefix=output_prefix,
+            view_elev=cfg.view_elev, view_azim=cfg.view_azim, dpi=cfg.dpi,
+            framework_colors=cfg.framework_colors,
+            adsorbate_colors=cfg.adsorbate_colors,
+            boundary_style=cfg.boundary_style
+        )
 
     # Generate animation if requested
-    if create_gif:
-        print(f"\nGenerating animation (dpi={dpi})...")
-        anim_cfg = config.get('animation', {})
-        create_animation(slab_traj, slab_nums, ads_traj, ads_nums, times,
-                        output_path=str(figures_dir / f"{mode}_diffusion.gif"),
-                        fps=anim_cfg.get('fps', 20),
-                        pause_frames=anim_cfg.get('pause_frames', 40),
-                        view_elev=view_elev, view_azim=view_azim, dpi=dpi,
-                        framework_colors=framework_colors,
-                        adsorbate_colors=adsorbate_colors,
-                        boundary_style=boundary_style)
+    if cfg.create_gif:
+        print(f"\nGenerating animation (dpi={cfg.dpi})...")
+        anim_cfg = cfg.animation_config
+        create_animation(
+            slab_traj, slab_nums, ads_traj, ads_nums, times,
+            output_path=str(cfg.figures_dir / f"{cfg.mode}_diffusion.gif"),
+            fps=anim_cfg.get('fps', 20),
+            pause_frames=anim_cfg.get('pause_frames', 40),
+            view_elev=cfg.view_elev, view_azim=cfg.view_azim, dpi=cfg.dpi,
+            framework_colors=cfg.framework_colors,
+            adsorbate_colors=cfg.adsorbate_colors,
+            boundary_style=cfg.boundary_style
+        )
 
     print("\n" + "=" * 60)
     print("Visualization complete!")
-    print(f"Output saved to: {figures_dir}/")
+    print(f"Output saved to: {cfg.figures_dir}/")
     print("=" * 60)
 
 

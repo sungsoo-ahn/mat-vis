@@ -15,7 +15,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ase.io import read
 from ase.build import make_supercell
-import yaml
 
 from src.utils import (
     get_framework_colors,
@@ -131,7 +130,9 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
                              boundary_scheme=None, dpi=200, figsize=(10, 10),
                              plot_separate=False, isolation_method="element",
                              isolation_config=None, adsorbate_shift=None,
-                             adsorbate_index=None):
+                             adsorbate_index=None,
+                             framework_colors=None, adsorbate_colors=None,
+                             boundary_style=None):
     """
     Visualize a structure file (CIF or XYZ).
 
@@ -142,9 +143,9 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
         separate_adsorbate: Whether to separate and highlight adsorbate
         view_elev: Camera elevation
         view_azim: Camera azimuth
-        framework_scheme: Framework color scheme name
-        adsorbate_scheme: Adsorbate color scheme name
-        boundary_scheme: Boundary scheme name
+        framework_scheme: Framework color scheme name (used if framework_colors not provided)
+        adsorbate_scheme: Adsorbate color scheme name (used if adsorbate_colors not provided)
+        boundary_scheme: Boundary scheme name (used if boundary_style not provided)
         dpi: Resolution
         figsize: Figure size (width, height)
         plot_separate: If True, generate separate plots for framework, adsorbate, and combined
@@ -152,14 +153,20 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
         isolation_config: Config dict for connectivity isolation
         adsorbate_shift: Periodic shift (na, nb, nc) for adsorbate positioning
         adsorbate_index: Index of adsorbate to keep (None = all, 0 = first, etc.)
+        framework_colors: Pre-resolved framework color dict (overrides framework_scheme)
+        adsorbate_colors: Pre-resolved adsorbate color dict (overrides adsorbate_scheme)
+        boundary_style: Pre-resolved boundary style dict (overrides boundary_scheme)
 
     Returns:
         Figure object (or dict of figures if plot_separate=True)
     """
-    # Get color schemes
-    framework_colors = get_framework_colors(framework_scheme)
-    adsorbate_colors = get_adsorbate_colors(adsorbate_scheme)
-    boundary_style = get_boundary_style(boundary_scheme)
+    # Get color schemes (use provided or resolve from scheme names)
+    if framework_colors is None:
+        framework_colors = get_framework_colors(framework_scheme)
+    if adsorbate_colors is None:
+        adsorbate_colors = get_adsorbate_colors(adsorbate_scheme)
+    if boundary_style is None:
+        boundary_style = get_boundary_style(boundary_scheme)
 
     # Load structure
     if separate_adsorbate:
@@ -265,86 +272,46 @@ def main():
         print("Usage: python src/structure_visualization.py <config.yaml>")
         sys.exit(1)
 
-    config_path = sys.argv[1]
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
+    from src.config import load_config, parse_visualization_config
+
+    config = load_config(sys.argv[1])
+    cfg = parse_visualization_config(config)
 
     # Setup output directory
-    output_dir = Path(config['output_dir'])
-    figures_dir = output_dir / 'figures'
-    figures_dir.mkdir(parents=True, exist_ok=True)
-
-    # Get visualization settings
-    vis_config = config.get('visualization', {})
-    view_elev = vis_config.get('view_elev', 20)
-    view_azim = vis_config.get('view_azim', -60)
-    dpi = vis_config.get('dpi', 200)
-    separate_adsorbate = vis_config.get('separate_adsorbate', False)
-    plot_separate = vis_config.get('plot_separate', False)
-    supercell_matrix = vis_config.get('supercell_matrix')
-
-    # Support simple tiling option [nx, ny, nz] as alternative to supercell_matrix
-    tiling = vis_config.get('tiling')
-    if tiling is not None and supercell_matrix is None:
-        nx, ny, nz = tiling
-        supercell_matrix = [[nx, 0, 0], [0, ny, 0], [0, 0, nz]]
-
-    # Isolation settings for separating adsorbates
-    # "element": by atomic number (for catalysts)
-    # "connectivity": by graph connectivity (for MOFs)
-    isolation_method = vis_config.get('isolation_method', 'element')
-    isolation_config = config.get('isolation', {})
-
-    # Adsorbate shift (periodic cell units)
-    ads_shift = vis_config.get('adsorbate_shift')
-    if ads_shift is not None:
-        ads_shift = tuple(ads_shift)
-
-    # Adsorbate index (which adsorbate to keep, None = all)
-    ads_index = vis_config.get('adsorbate_index')
-
-    # Get color schemes
-    framework_scheme = config.get('framework_scheme')
-    adsorbate_scheme = config.get('adsorbate_scheme')
-    boundary_scheme = config.get('boundary_scheme')
-
-    # Process input files
-    input_files = config.get('input_files', [])
-    if isinstance(input_files, str):
-        input_files = [input_files]
+    cfg.figures_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 60)
     print("Structure Visualization")
     print("=" * 60)
 
-    for input_file in input_files:
+    for input_file in cfg.input_files:
         input_path = Path(input_file)
         print(f"\nProcessing: {input_path}")
 
         output_name = input_path.stem + '.png'
-        output_path = figures_dir / output_name
+        output_path = cfg.figures_dir / output_name
 
         visualize_structure_file(
             file_path=input_file,
             output_path=output_path,
-            supercell_matrix=supercell_matrix,
-            separate_adsorbate=separate_adsorbate,
-            view_elev=view_elev,
-            view_azim=view_azim,
-            framework_scheme=framework_scheme,
-            adsorbate_scheme=adsorbate_scheme,
-            boundary_scheme=boundary_scheme,
-            dpi=dpi,
-            plot_separate=plot_separate,
-            isolation_method=isolation_method,
-            isolation_config=isolation_config,
-            adsorbate_shift=ads_shift,
-            adsorbate_index=ads_index
+            supercell_matrix=cfg.supercell_matrix,
+            separate_adsorbate=cfg.separate_adsorbate,
+            view_elev=cfg.view_elev,
+            view_azim=cfg.view_azim,
+            dpi=cfg.dpi,
+            plot_separate=cfg.plot_separate,
+            isolation_method=cfg.isolation_method,
+            isolation_config=cfg.isolation_config,
+            adsorbate_shift=cfg.adsorbate_shift,
+            adsorbate_index=cfg.adsorbate_index,
+            framework_colors=cfg.framework_colors,
+            adsorbate_colors=cfg.adsorbate_colors,
+            boundary_style=cfg.boundary_style,
         )
 
     print("\n" + "=" * 60)
     print("Visualization complete!")
-    print(f"Output saved to: {figures_dir}/")
+    print(f"Output saved to: {cfg.figures_dir}/")
     print("=" * 60)
 
 
