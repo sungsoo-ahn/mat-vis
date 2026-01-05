@@ -1,10 +1,10 @@
-# Flow matching visualization config for MOF with CO2 adsorbate
+# Unified config for MOF visualization (works with both structure and diffusion)
 output_dir: "data/viz_mof_diffusion"
 
 # Visualization mode: mof or catalyst
 mode: "mof"
 
-# Color schemes (cool_gray + mint_coral is default)
+# Color schemes
 framework_scheme: "cool_gray"
 adsorbate_scheme: "mint_coral"
 boundary_scheme: "thin_dark"
@@ -12,31 +12,38 @@ boundary_scheme: "thin_dark"
 # Random seed for reproducibility
 random_seed: 42
 
-# MOF-specific settings
-mof:
-  framework_file: "data/sample/mof_clean.xyz"
-  adsorbate_file: "data/sample/co2_with_cell.xyz"
+# Input file
+input_files:
+  - "data/sample/mof.cif"
 
-  # Supercell tiling: [[a1, a2, a3], [b1, b2, b3], [c1, c2, c3]]
-  supercell_matrix: [[1, 0, 0], [0, 2, 0], [0, 0, 2]]
-
-  # Adsorbate periodic shift: [na, nb, nc]
-  adsorbate_shift: [0, 0, 1]
-
-  # Camera view angles
+# Visualization settings (shared with structure_visualization)
+visualization:
+  separate_adsorbate: true
+  plot_separate: false
+  isolation_method: "connectivity"
+  tiling: [1, 4, 4]
   view_elev: -10
   view_azim: 0
+  dpi: 200
+  adsorbate_index: 1
+  adsorbate_shift: [0, 1, 2]
 
-# Trajectory generation settings
+# Isolation parameters for connectivity-based separation
+isolation:
+  target_components: 3
+  cutoff_min: 0.5
+  cutoff_max: 2.0
+
+# Diffusion-specific settings
 trajectory:
-  num_steps: 60
+  num_steps: 30
   noise_scale: 1.5
+  fixed_adsorbate: true
 
 # Output settings
-dpi: 200
-create_gif: false
+create_gif: true
 
-# Animation settings (only used if create_gif: true)
+# Animation settings
 animation:
   fps: 20
   pause_frames: 40

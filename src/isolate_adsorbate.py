@@ -1,21 +1,24 @@
 """
 Adsorbate Isolation Module.
 
-Isolates adsorbates from MOF framework using connectivity analysis.
-Searches for a distance cutoff threshold where the structure separates
-into a specified number of disconnected components.
+Provides unified adsorbate isolation for both MOF and catalyst structures:
+- MOF: Connectivity-based isolation using graph analysis
+- Catalyst: Element-based isolation using atomic numbers
 """
 
 import numpy as np
 from pathlib import Path
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Union
 from dataclasses import dataclass
 
 from ase.io import read, write
 from ase import Atoms
+from ase.build import make_supercell
 from ase.neighborlist import natural_cutoffs, NeighborList
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components
+
+from src.utils import ADSORBATE_ELEMENTS
 
 
 @dataclass
@@ -23,10 +26,14 @@ class IsolationResult:
     """Result of adsorbate isolation."""
     framework: Atoms
     adsorbates: List[Atoms]
-    cutoff_multiplier: float
-    n_components: int
-    component_sizes: List[int]
+    method: str  # "connectivity" or "element"
+    cutoff_multiplier: Optional[float] = None  # Only for connectivity method
+    n_components: Optional[int] = None  # Only for connectivity method
 
+
+# ============================================================================
+# CONNECTIVITY-BASED ISOLATION (for MOFs)
+# ============================================================================
 
 def find_connected_components(atoms: Atoms, cutoff_mult: float = 1.0) -> Tuple[int, np.ndarray]:
     """Find connected components in an atomic structure.
@@ -186,21 +193,21 @@ def search_cutoff_for_n_components(
     return final_mult, n_comp, labels
 
 
-def isolate_adsorbates(
+def isolate_by_connectivity(
     atoms: Atoms,
     target_n_components: int = 3,
     cutoff_min: float = 0.5,
     cutoff_max: float = 2.0,
-    verbose: bool = True
+    verbose: bool = False
 ) -> IsolationResult:
-    """Isolate adsorbates from MOF framework.
+    """Isolate adsorbates using connectivity analysis (for MOFs).
 
     Searches for distance cutoff where structure separates into target
     number of components. The largest component is assumed to be the
     framework, all others are adsorbates.
 
     Args:
-        atoms: ASE Atoms object containing MOF with adsorbates
+        atoms: ASE Atoms object containing structure with adsorbates
         target_n_components: Expected number of components (framework + adsorbates)
         cutoff_min: Minimum cutoff multiplier to search
         cutoff_max: Maximum cutoff multiplier to search
@@ -244,17 +251,203 @@ def isolate_adsorbates(
     return IsolationResult(
         framework=framework,
         adsorbates=adsorbates,
+        method="connectivity",
         cutoff_multiplier=cutoff_mult,
-        n_components=n_components,
-        component_sizes=[s for _, s in component_sizes]
+        n_components=n_components
     )
 
+
+# ============================================================================
+# ELEMENT-BASED ISOLATION (for Catalysts)
+# ============================================================================
+
+def isolate_by_element(atoms: Atoms, verbose: bool = False) -> IsolationResult:
+    """Isolate adsorbates using element-based separation (for catalysts).
+
+    Separates atoms based on atomic numbers. Atoms with atomic numbers
+    in ADSORBATE_ELEMENTS (C, H, O, N, S) are considered adsorbates.
+
+    Args:
+        atoms: ASE Atoms object containing structure with adsorbates
+        verbose: Print progress information
+
+    Returns:
+        IsolationResult with framework and adsorbate Atoms objects
+    """
+    numbers = atoms.numbers
+    positions = atoms.positions
+
+    # Separate framework and adsorbate by atomic number
+    framework_mask = np.array([n not in ADSORBATE_ELEMENTS for n in numbers])
+    ads_mask = ~framework_mask
+
+    framework = atoms[framework_mask]
+    adsorbate_atoms = atoms[ads_mask]
+
+    # Treat all adsorbate atoms as a single adsorbate group
+    adsorbates = [adsorbate_atoms] if len(adsorbate_atoms) > 0 else []
+
+    if verbose:
+        print(f"Element-based isolation:")
+        print(f"  Framework: {len(framework)} atoms ({framework.get_chemical_formula()})")
+        if adsorbates:
+            print(f"  Adsorbate: {len(adsorbate_atoms)} atoms ({adsorbate_atoms.get_chemical_formula()})")
+
+    return IsolationResult(
+        framework=framework,
+        adsorbates=adsorbates,
+        method="element"
+    )
+
+
+# ============================================================================
+# UNIFIED ISOLATION FUNCTION
+# ============================================================================
+
+def isolate_adsorbates(
+    atoms: Atoms,
+    method: str = "connectivity",
+    target_n_components: int = 3,
+    cutoff_min: float = 0.5,
+    cutoff_max: float = 2.0,
+    verbose: bool = False
+) -> IsolationResult:
+    """Unified adsorbate isolation supporting both MOF and catalyst structures.
+
+    Args:
+        atoms: ASE Atoms object containing structure with adsorbates
+        method: Isolation method - "connectivity" (MOF) or "element" (catalyst)
+        target_n_components: For connectivity method, expected number of components
+        cutoff_min: For connectivity method, minimum cutoff multiplier
+        cutoff_max: For connectivity method, maximum cutoff multiplier
+        verbose: Print progress information
+
+    Returns:
+        IsolationResult with framework and adsorbate Atoms objects
+    """
+    if method == "connectivity":
+        return isolate_by_connectivity(
+            atoms,
+            target_n_components=target_n_components,
+            cutoff_min=cutoff_min,
+            cutoff_max=cutoff_max,
+            verbose=verbose
+        )
+    elif method == "element":
+        return isolate_by_element(atoms, verbose=verbose)
+    else:
+        raise ValueError(f"Unknown isolation method: {method}. Use 'connectivity' or 'element'.")
+
+
+def load_and_isolate(
+    file_path: str,
+    method: str = "connectivity",
+    supercell_matrix: Optional[List] = None,
+    isolation_config: Optional[dict] = None,
+    center_adsorbate: bool = True,
+    adsorbate_shift: Optional[Tuple[float, float, float]] = None,
+    adsorbate_index: Optional[int] = None,
+    verbose: bool = False
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str]:
+    """Load structure file and isolate adsorbates with optional supercell.
+
+    Args:
+        file_path: Path to structure file (CIF, XYZ, etc.)
+        method: Isolation method - "connectivity" (MOF) or "element" (catalyst)
+        supercell_matrix: Optional 3x3 matrix for framework supercell
+        isolation_config: Config dict for connectivity isolation
+        center_adsorbate: Whether to center adsorbate on supercell (for catalysts)
+        adsorbate_shift: Periodic shift (na, nb, nc) for adsorbate positioning
+        adsorbate_index: Index of adsorbate to keep (None = all, 0 = first, etc.)
+        verbose: Print progress information
+
+    Returns:
+        Tuple of (framework_pos, framework_nums, ads_pos, ads_nums, formula)
+    """
+    atoms = read(file_path)
+    formula = atoms.get_chemical_formula()
+    cell = atoms.get_cell()
+
+    # Get isolation parameters
+    iso_config = isolation_config or {}
+    target_components = iso_config.get('target_components', 2)
+    cutoff_min = iso_config.get('cutoff_min', 0.5)
+    cutoff_max = iso_config.get('cutoff_max', 2.0)
+
+    # Isolate adsorbates
+    result = isolate_adsorbates(
+        atoms,
+        method=method,
+        target_n_components=target_components,
+        cutoff_min=cutoff_min,
+        cutoff_max=cutoff_max,
+        verbose=verbose
+    )
+
+    framework_atoms = result.framework
+
+    # Select adsorbates to keep
+    if result.adsorbates:
+        if adsorbate_index is not None:
+            # Keep only specified adsorbate
+            if 0 <= adsorbate_index < len(result.adsorbates):
+                selected_adsorbates = [result.adsorbates[adsorbate_index]]
+            else:
+                print(f"Warning: adsorbate_index {adsorbate_index} out of range, using first")
+                selected_adsorbates = [result.adsorbates[0]]
+        else:
+            # Keep all adsorbates
+            selected_adsorbates = result.adsorbates
+
+        # Combine selected adsorbates
+        ads_atoms = selected_adsorbates[0].copy()
+        for ads in selected_adsorbates[1:]:
+            ads_atoms += ads
+        ads_pos = ads_atoms.positions.copy()
+        ads_nums = ads_atoms.numbers.copy()
+    else:
+        ads_pos = np.array([]).reshape(0, 3)
+        ads_nums = np.array([])
+
+    # Apply periodic shift to adsorbate
+    if adsorbate_shift is not None and len(ads_pos) > 0:
+        na, nb, nc = adsorbate_shift
+        shift_cartesian = na * cell[0] + nb * cell[1] + nc * cell[2]
+        ads_pos += shift_cartesian
+
+    # Create supercell of framework
+    if supercell_matrix is not None:
+        P = np.array(supercell_matrix)
+        framework_atoms = make_supercell(framework_atoms, P)
+
+        # Center adsorbate on supercell (for catalysts)
+        if center_adsorbate and len(ads_pos) > 0 and method == "element":
+            framework_pos = framework_atoms.positions.copy()
+            slab_center_xy = framework_pos[:, :2].mean(axis=0)
+            ads_center_xy = ads_pos[:, :2].mean(axis=0)
+            ads_pos[:, :2] += slab_center_xy - ads_center_xy
+
+    framework_pos = framework_atoms.positions.copy()
+    framework_nums = framework_atoms.numbers.copy()
+
+    # Center at origin
+    all_pos = np.vstack([framework_pos, ads_pos]) if len(ads_pos) > 0 else framework_pos
+    center = all_pos.mean(axis=0)
+    framework_pos -= center
+    if len(ads_pos) > 0:
+        ads_pos -= center
+
+    return framework_pos, framework_nums, ads_pos, ads_nums, formula
+
+
+# ============================================================================
+# CLI ENTRY POINT
+# ============================================================================
 
 def main(config_path: str = None):
     """Main entry point for adsorbate isolation."""
     import yaml
     import sys
-    import os
 
     # Load config
     if config_path is None:
@@ -276,6 +469,7 @@ def main(config_path: str = None):
 
     # Get isolation parameters
     isolation_config = config.get('isolation', {})
+    method = isolation_config.get('method', 'connectivity')
     target_components = isolation_config.get('target_components', 3)
     cutoff_min = isolation_config.get('cutoff_min', 0.5)
     cutoff_max = isolation_config.get('cutoff_max', 2.0)
@@ -283,6 +477,7 @@ def main(config_path: str = None):
     # Isolate adsorbates
     result = isolate_adsorbates(
         atoms,
+        method=method,
         target_n_components=target_components,
         cutoff_min=cutoff_min,
         cutoff_max=cutoff_max,
@@ -293,45 +488,51 @@ def main(config_path: str = None):
     print(f"\n{'='*60}")
     print("Isolation Results:")
     print(f"{'='*60}")
-    print(f"Cutoff multiplier: {result.cutoff_multiplier:.4f}")
-    print(f"Number of components: {result.n_components}")
+    print(f"Method: {result.method}")
+    if result.cutoff_multiplier is not None:
+        print(f"Cutoff multiplier: {result.cutoff_multiplier:.4f}")
+    if result.n_components is not None:
+        print(f"Number of components: {result.n_components}")
     print(f"Framework: {len(result.framework)} atoms ({result.framework.get_chemical_formula()})")
 
     # Save framework
-    framework_path = output_dir / 'results' / 'framework.xyz'
+    framework_path = output_dir / 'results' / 'framework.cif'
     write(framework_path, result.framework)
     print(f"Saved framework to: {framework_path}")
 
     # Save adsorbates
     for i, ads in enumerate(result.adsorbates):
-        ads_path = output_dir / 'results' / f'adsorbate_{i+1}.xyz'
+        ads_path = output_dir / 'results' / f'adsorbate_{i+1}.cif'
         write(ads_path, ads)
         print(f"Adsorbate {i+1}: {len(ads)} atoms ({ads.get_chemical_formula()}) -> {ads_path}")
 
     # Save combined adsorbates
     if len(result.adsorbates) > 1:
-        from ase import Atoms as AseAtoms
         combined_ads = result.adsorbates[0].copy()
         for ads in result.adsorbates[1:]:
             combined_ads += ads
-        combined_path = output_dir / 'results' / 'adsorbates_combined.xyz'
+        combined_path = output_dir / 'results' / 'adsorbates_combined.cif'
         write(combined_path, combined_ads)
         print(f"Combined adsorbates: {combined_path}")
 
     # Save summary
+    import yaml as yaml_module
     summary = {
         'input_file': str(input_path),
-        'cutoff_multiplier': float(result.cutoff_multiplier),
-        'n_components': int(result.n_components),
+        'method': result.method,
         'framework_atoms': int(len(result.framework)),
         'framework_formula': result.framework.get_chemical_formula(),
         'n_adsorbates': len(result.adsorbates),
         'adsorbate_formulas': [ads.get_chemical_formula() for ads in result.adsorbates]
     }
+    if result.cutoff_multiplier is not None:
+        summary['cutoff_multiplier'] = float(result.cutoff_multiplier)
+    if result.n_components is not None:
+        summary['n_components'] = int(result.n_components)
 
     summary_path = output_dir / 'results' / 'isolation_summary.yaml'
     with open(summary_path, 'w') as f:
-        yaml.dump(summary, f, default_flow_style=False)
+        yaml_module.dump(summary, f, default_flow_style=False)
     print(f"\nSummary saved to: {summary_path}")
 
     return result

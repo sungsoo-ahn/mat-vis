@@ -47,7 +47,7 @@ input_files:
 # Visualization settings
 visualization:
   separate_adsorbate: true
-  supercell_matrix: [[2, 0, 0], [0, 2, 0], [0, 0, 1]]
+  tiling: [2, 2, 1]
   view_elev: 20
   view_azim: -60
   dpi: 200

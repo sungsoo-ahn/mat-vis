@@ -1,0 +1,21 @@
+# Example: Catalyst structure visualization
+output_dir: "data/examples_output/catalyst"
+
+# Color schemes
+framework_scheme: "cool_gray"
+adsorbate_scheme: "mint_coral"
+boundary_scheme: "thin_dark"
+
+# Input file
+input_files:
+  - "data/sample/catalyst.cif"
+
+# Visualization settings (optimized for catalyst)
+visualization:
+  separate_adsorbate: true
+  plot_separate: true
+  isolation_method: "element"  # Use element-based separation for catalysts
+  tiling: [2, 2, 1]
+  view_elev: 35
+  view_azim: -50
+  dpi: 200

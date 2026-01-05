@@ -5,8 +5,8 @@
 # This script generates visualizations of all sample data:
 # - Catalyst structures
 # - MOF structures
-# - Isolated adsorbates
 #
+# Each structure type uses its own config with optimized view angles.
 
 echo "============================================================"
 echo "Visualizing Sample Structures"
@@ -16,38 +16,27 @@ echo "This will generate visualizations of all sample data."
 echo "Output will be saved to: data/examples_output/"
 echo ""
 
-OUTPUT_DIR="data/examples_output"
-
 # Catalyst structure
 echo "1. Visualizing catalyst structure..."
-bash scripts/visualization/view_cif.sh data/sample/catalyst/1234.cif "$OUTPUT_DIR/catalyst"
+uv run python src/structure_visualization.py configs/examples/view_catalyst.yaml
 echo ""
 
 # MOF structure
 echo "2. Visualizing MOF structure..."
-bash scripts/visualization/view_cif.sh data/sample/mof.cif "$OUTPUT_DIR/mof"
+uv run python src/structure_visualization.py configs/examples/view_mof.yaml
 echo ""
-
-# Adsorbate (if exists)
-if [ -f "data/sample/adsorbate.cif" ]; then
-    echo "3. Visualizing adsorbate structure..."
-    bash scripts/visualization/view_cif.sh data/sample/adsorbate.cif "$OUTPUT_DIR/adsorbate"
-    echo ""
-fi
 
 echo "============================================================"
 echo "All sample visualizations complete!"
 echo "============================================================"
 echo ""
 echo "Output files:"
-echo "  - $OUTPUT_DIR/catalyst/figures/1234.png"
-echo "  - $OUTPUT_DIR/mof/figures/mof.png"
-if [ -f "data/sample/adsorbate.cif" ]; then
-    echo "  - $OUTPUT_DIR/adsorbate/figures/adsorbate.png"
-fi
+echo "  - data/examples_output/catalyst/figures/catalyst_*.png"
+echo "  - data/examples_output/mof/figures/mof_*.png"
 echo ""
 echo "Next steps:"
 echo "  1. View the generated PNG files"
-echo "  2. Visualize your own CIF files:"
+echo "  2. Customize configs in configs/examples/ for different view angles"
+echo "  3. Visualize your own CIF files:"
 echo "     bash scripts/visualization/view_cif.sh path/to/your.cif"
 echo ""

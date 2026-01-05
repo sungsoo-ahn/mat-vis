@@ -12,12 +12,20 @@ boundary_scheme: "thin_dark"
 # Random seed for reproducibility
 random_seed: 42
 
+# Isolation settings
+# "element" for catalysts (by atomic number), "connectivity" for MOFs
+isolation_method: "element"
+
+# Plot separate framework, adsorbate, and combined views
+plot_separate: false
+
 # Catalyst-specific settings
 catalyst:
-  catalyst_file: "data/sample/catalyst/1234.cif"
+  # Single file with adsorbates
+  input_file: "data/sample/catalyst.cif"
 
-  # Supercell tiling: [[a1, a2, a3], [b1, b2, b3], [c1, c2, c3]]
-  supercell_matrix: [[2, 0, 0], [0, 2, 0], [0, 0, 1]]
+  # Simple tiling [nx, ny, nz]
+  tiling: [2, 2, 1]
 
   # Camera view angles
   view_elev: 35
@@ -25,12 +33,13 @@ catalyst:
 
 # Trajectory generation settings
 trajectory:
-  num_steps: 60
+  num_steps: 30
   noise_scale: 1.5
+  fixed_adsorbate: true  # Adsorbate stays fixed during diffusion
 
 # Output settings
 dpi: 200
-create_gif: false
+create_gif: true
 
 # Animation settings (only used if create_gif: true)
 animation:

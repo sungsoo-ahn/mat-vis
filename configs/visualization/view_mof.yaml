@@ -1,4 +1,4 @@
-# Static structure visualization config for catalyst CIF file
+# Static structure visualization config for MOF CIF file
 output_dir: "data/viz_structure"
 
 # Color schemes (cool_gray + mint_coral is default)
@@ -8,7 +8,7 @@ boundary_scheme: "thin_dark"
 
 # Input files to visualize (can be list or single file)
 input_files:
-  - "data/sample/catalyst.cif"
+  - "data/sample/mof.cif"
 
 # Visualization settings
 visualization:
@@ -16,15 +16,21 @@ visualization:
   separate_adsorbate: true
   plot_separate: true
 
-  # Use element-based separation for catalysts
-  isolation_method: "element"
+  # Use connectivity-based isolation for MOFs
+  isolation_method: "connectivity"
 
   # Simple tiling [nx, ny, nz] or full supercell_matrix for non-diagonal
-  tiling: [2, 2, 1]
+  tiling: [1, 2, 2]
 
-  # Camera view angles
-  view_elev: 35
-  view_azim: -50
+  # Camera view angles (optimized for MOF visualization)
+  view_elev: -10
+  view_azim: 0
 
   # Resolution
   dpi: 200
+
+# Isolation parameters for connectivity-based separation
+isolation:
+  target_components: 3  # 1 framework + N adsorbates
+  cutoff_min: 0.5
+  cutoff_max: 2.0
