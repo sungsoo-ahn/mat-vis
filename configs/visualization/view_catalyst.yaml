@@ -1,0 +1,26 @@
+# Static structure visualization config for catalyst CIF file
+output_dir: "data/viz_structure"
+
+# Color schemes (cool_gray + mint_coral is default)
+framework_scheme: "cool_gray"
+adsorbate_scheme: "mint_coral"
+boundary_scheme: "thin_dark"
+
+# Input files to visualize (can be list or single file)
+input_files:
+  - "data/sample/catalyst/1234.cif"
+
+# Visualization settings
+visualization:
+  # Separate and highlight adsorbate atoms
+  separate_adsorbate: true
+
+  # Supercell tiling: [[a1, a2, a3], [b1, b2, b3], [c1, c2, c3]]
+  supercell_matrix: [[2, 0, 0], [0, 2, 0], [0, 0, 1]]
+
+  # Camera view angles
+  view_elev: 35
+  view_azim: -50
+
+  # Resolution
+  dpi: 200
