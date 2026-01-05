@@ -5,7 +5,9 @@ A research codebase for visualizing and manipulating MOF (Metal-Organic Framewor
 ## Features
 
 - **Adsorbate Isolation**: Graph-based connectivity analysis to separate adsorbates from framework structures
-- **Flow Matching Visualization**: Visualize conditional diffusion processes where adsorbates are fixed and frameworks are generated around them
+- **Static Structure Viewing**: View and render CIF/XYZ files with customizable color schemes
+- **Diffusion Process Visualization**: Visualize conditional diffusion processes where adsorbates are fixed and frameworks are generated around them
+- **Modular Architecture**: Separate modules for rendering, static viewing, and diffusion visualization
 - **Customizable Color Schemes**: Multiple pre-defined color schemes for framework and adsorbate atoms
 - **3D Glossy Rendering**: Professional-quality 3D visualizations with shadows, highlights, and specular effects
 - **Static & Animated Outputs**: Generate both static PNG frames and animated GIFs
@@ -23,7 +25,14 @@ cd mat-vis
 uv sync
 ```
 
-### Run Visualization
+### View Static Structures
+
+```bash
+# View catalyst structure from CIF file
+bash scripts/visualization/view_structures.sh configs/visualization/view_catalyst.yaml
+```
+
+### Run Diffusion Visualization
 
 ```bash
 # MOF diffusion visualization (static frames)
@@ -47,52 +56,63 @@ bash scripts/run_isolate_adsorbate.sh
 
 ```
 mat-vis/
-├── src/                          # Python source code
-│   ├── utils.py                  # Color schemes, element properties, utilities
-│   ├── visualization.py          # Flow matching visualization pipeline
-│   └── isolate_adsorbate.py      # Adsorbate isolation module
-├── configs/                      # YAML configuration files
+├── src/                                # Python source code
+│   ├── utils.py                        # Color schemes, element properties, utilities
+│   ├── rendering.py                    # Shared 3D rendering functions
+│   ├── structure_visualization.py      # Static CIF/XYZ viewing
+│   ├── diffusion_visualization.py      # Diffusion process visualization
+│   └── isolate_adsorbate.py            # Adsorbate isolation module
+├── configs/                            # YAML configuration files
 │   ├── visualization/
-│   │   ├── mof_diffusion.yaml    # MOF visualization config
-│   │   └── catalyst_diffusion.yaml # Catalyst visualization config
-│   └── isolate_adsorbate.yaml    # Adsorbate isolation config
-├── scripts/                      # Execution scripts
+│   │   ├── mof_diffusion.yaml          # MOF diffusion config
+│   │   ├── catalyst_diffusion.yaml     # Catalyst diffusion config
+│   │   └── view_catalyst.yaml          # Static structure viewing config
+│   └── isolate_adsorbate.yaml          # Adsorbate isolation config
+├── scripts/                            # Execution scripts
 │   ├── visualization/
-│   │   ├── run_mof_diffusion.sh
-│   │   └── run_catalyst_diffusion.sh
+│   │   ├── run_mof_diffusion.sh        # Run MOF diffusion viz
+│   │   ├── run_catalyst_diffusion.sh   # Run catalyst diffusion viz
+│   │   └── view_structures.sh          # View static structures
 │   └── run_isolate_adsorbate.sh
-├── data/                         # Data and outputs (gitignored)
-│   └── sample/                   # Sample structures (git-tracked)
+├── data/                               # Data and outputs (gitignored)
+│   └── sample/                         # Sample structures (git-tracked)
 │       ├── mof_clean.xyz
 │       ├── co2_with_cell.xyz
-│       └── catalyst/             # Sample catalyst structures
-├── scratch/                      # Experimental code (gitignored)
+│       └── catalyst/                   # Sample catalyst structures
+├── scratch/                            # Experimental code (gitignored)
 └── README.md
 ```
 
 ## Modules
 
-### Adsorbate Isolation (`src/isolate_adsorbate.py`)
+### Shared Rendering (`src/rendering.py`)
 
-Separates adsorbate molecules from framework structures using graph-based connectivity analysis.
+Provides shared 3D rendering functions for all visualization modules.
 
-**Algorithm:**
-1. Uses covalent radii to determine atomic bonds
-2. Builds adjacency matrix with ASE neighbor lists
-3. Finds connected components using scipy
-4. Separates largest component (framework) from smaller ones (adsorbates)
+**Features:**
+- Glossy sphere rendering with shadows, highlights, and specular effects
+- Depth-sorted rendering for proper layering
+- Configurable color schemes and boundary styles
+
+### Static Structure Visualization (`src/structure_visualization.py`)
+
+View and render CIF/XYZ structure files without diffusion.
+
+**Features:**
+- Load CIF or XYZ files
+- Optional supercell creation
+- Automatic adsorbate separation and highlighting
+- Customizable camera angles and color schemes
 
 **Usage:**
 ```bash
-bash scripts/run_isolate_adsorbate.sh
+bash scripts/visualization/view_structures.sh configs/visualization/view_catalyst.yaml
 ```
 
 **Outputs:**
-- `framework.xyz` - Isolated framework atoms
-- `adsorbate_*.xyz` - Individual adsorbate molecules
-- `summary.yaml` - Analysis summary
+- PNG images of structure views
 
-### Flow Matching Visualization (`src/visualization.py`)
+### Diffusion Process Visualization (`src/diffusion_visualization.py`)
 
 Visualizes conditional diffusion processes for materials generation.
 
@@ -114,6 +134,26 @@ bash scripts/visualization/run_mof_diffusion.sh --create-gif
 **Outputs:**
 - `*_t0.00.png` through `*_t1.00.png` - Frames at key timesteps
 - `*_diffusion.gif` - Animated visualization (if enabled)
+
+### Adsorbate Isolation (`src/isolate_adsorbate.py`)
+
+Separates adsorbate molecules from framework structures using graph-based connectivity analysis.
+
+**Algorithm:**
+1. Uses covalent radii to determine atomic bonds
+2. Builds adjacency matrix with ASE neighbor lists
+3. Finds connected components using scipy
+4. Separates largest component (framework) from smaller ones (adsorbates)
+
+**Usage:**
+```bash
+bash scripts/run_isolate_adsorbate.sh
+```
+
+**Outputs:**
+- `framework.xyz` - Isolated framework atoms
+- `adsorbate_*.xyz` - Individual adsorbate molecules
+- `summary.yaml` - Analysis summary
 
 ## Configuration
 
