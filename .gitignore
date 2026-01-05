@@ -11,3 +11,8 @@ wheels/
 
 # Output
 output/
+
+# Data outputs (keep sample data)
+data/*
+!data/sample/
+!data/sample/**

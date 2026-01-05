@@ -1,0 +1,42 @@
+# Flow matching visualization config for MOF with CO2 adsorbate
+output_dir: "data/viz_mof_diffusion"
+
+# Visualization mode: mof or catalyst
+mode: "mof"
+
+# Color schemes (cool_gray + mint_coral is default)
+framework_scheme: "cool_gray"
+adsorbate_scheme: "mint_coral"
+boundary_scheme: "thin_dark"
+
+# Random seed for reproducibility
+random_seed: 42
+
+# MOF-specific settings
+mof:
+  framework_file: "data/sample/mof_clean.xyz"
+  adsorbate_file: "data/sample/co2_with_cell.xyz"
+
+  # Supercell tiling: [[a1, a2, a3], [b1, b2, b3], [c1, c2, c3]]
+  supercell_matrix: [[1, 0, 0], [0, 2, 0], [0, 0, 2]]
+
+  # Adsorbate periodic shift: [na, nb, nc]
+  adsorbate_shift: [0, 0, 1]
+
+  # Camera view angles
+  view_elev: -10
+  view_azim: 0
+
+# Trajectory generation settings
+trajectory:
+  num_steps: 60
+  noise_scale: 1.5
+
+# Output settings
+dpi: 200
+create_gif: false
+
+# Animation settings (only used if create_gif: true)
+animation:
+  fps: 20
+  pause_frames: 40
