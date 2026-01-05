@@ -14,7 +14,7 @@ A research codebase for visualizing and manipulating MOF (Metal-Organic Framewor
 
 ## Quick Start
 
-### Installation
+### 1. Installation
 
 ```bash
 # Clone the repository
@@ -25,14 +25,28 @@ cd mat-vis
 uv sync
 ```
 
-### View Static Structures
+### 2. Visualize Example Structures
 
 ```bash
-# View catalyst structure from CIF file
-bash scripts/visualization/view_structures.sh configs/visualization/view_catalyst.yaml
+# See what the tool can do - visualizes all sample structures
+bash scripts/examples/visualize_all_samples.sh
+
+# Check output in data/examples_output/
 ```
 
-### Run Diffusion Visualization
+### 3. Visualize Your Own CIF Files
+
+```bash
+# Simple one-liner to visualize any CIF file
+bash scripts/visualization/view_cif.sh path/to/your_structure.cif
+
+# Specify custom output directory
+bash scripts/visualization/view_cif.sh your_structure.cif data/my_output
+```
+
+## Advanced Usage
+
+### Diffusion Process Visualization
 
 ```bash
 # MOF diffusion visualization (static frames)
@@ -45,11 +59,18 @@ bash scripts/visualization/run_catalyst_diffusion.sh
 bash scripts/visualization/run_mof_diffusion.sh --create-gif
 ```
 
-### Run Adsorbate Isolation
+### Adsorbate Isolation
 
 ```bash
 # Isolate adsorbates from MOF structure
 bash scripts/run_isolate_adsorbate.sh
+```
+
+### Custom Configuration
+
+```bash
+# Use config file for full control
+bash scripts/visualization/view_structures.sh configs/visualization/view_catalyst.yaml
 ```
 
 ## Project Structure
