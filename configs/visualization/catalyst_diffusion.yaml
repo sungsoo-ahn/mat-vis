@@ -1,0 +1,38 @@
+# Flow matching visualization config for catalyst structure
+output_dir: "data/viz_catalyst_diffusion"
+
+# Visualization mode: mof or catalyst
+mode: "catalyst"
+
+# Color schemes (cool_gray + mint_coral is default)
+framework_scheme: "cool_gray"
+adsorbate_scheme: "mint_coral"
+boundary_scheme: "thin_dark"
+
+# Random seed for reproducibility
+random_seed: 42
+
+# Catalyst-specific settings
+catalyst:
+  catalyst_file: "data/sample/catalyst/1234.cif"
+
+  # Supercell tiling: [[a1, a2, a3], [b1, b2, b3], [c1, c2, c3]]
+  supercell_matrix: [[2, 0, 0], [0, 2, 0], [0, 0, 1]]
+
+  # Camera view angles
+  view_elev: 35
+  view_azim: -50
+
+# Trajectory generation settings
+trajectory:
+  num_steps: 60
+  noise_scale: 1.5
+
+# Output settings
+dpi: 200
+create_gif: false
+
+# Animation settings (only used if create_gif: true)
+animation:
+  fps: 20
+  pause_frames: 40
