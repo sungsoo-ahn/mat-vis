@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-from src.rendering import render_structure, set_axis_limits_with_margin
+from src.rendering import render_structure, render_crystal, set_axis_limits_with_margin
 from src.isolate_adsorbate import load_and_isolate
 
 
@@ -78,6 +78,42 @@ def create_conditional_trajectory(slab_target, ads_target, num_steps=50, noise_s
             ads_traj[i] = signal_weight * ads_target + noise_weight * ads_noise
 
     return slab_traj, ads_traj, times
+
+
+def create_unconditional_trajectory(target_positions, num_steps=50, noise_scale=1.5):
+    """
+    Create unconditional diffusion trajectory for crystal structures.
+
+    All atoms transition from noise to structure (no fixed condition).
+
+    Args:
+        target_positions: Target atom positions (Nx3 array)
+        num_steps: Number of timesteps
+        noise_scale: Multiplier for noise std relative to target std
+
+    Returns:
+        Tuple of (trajectory, times)
+    """
+    times = np.linspace(0, 1, num_steps + 1)
+    trajectory = np.zeros((num_steps + 1, *target_positions.shape))
+
+    # Compute noise std from target's spatial extent
+    pos_std = target_positions.std(axis=0).mean() * noise_scale
+
+    # Sample fixed noise vector
+    noise = np.random.randn(*target_positions.shape) * pos_std
+
+    for i, t in enumerate(times):
+        # Cosine schedule: alpha_bar goes from 0 (t=0) to 1 (t=1)
+        alpha_bar = np.sin(t * np.pi / 2) ** 2
+
+        # DDPM forward process formula
+        signal_weight = np.sqrt(alpha_bar)
+        noise_weight = np.sqrt(1 - alpha_bar)
+
+        trajectory[i] = signal_weight * target_positions + noise_weight * noise
+
+    return trajectory, times
 
 
 # ============================================================================
@@ -297,6 +333,186 @@ def create_animation(slab_traj, slab_nums, ads_traj, ads_nums, times,
 
 
 # ============================================================================
+# CRYSTAL DIFFUSION FUNCTIONS
+# ============================================================================
+
+def save_crystal_trajectory_frames(trajectory, atomic_nums, times,
+                                    output_prefix, view_elev=15, view_azim=-45, dpi=200,
+                                    crystal_colors=None, boundary_style=None):
+    """
+    Save individual PNG frames for crystal diffusion at key timesteps.
+
+    Args:
+        trajectory: Position trajectory array (T x N x 3)
+        atomic_nums: Atomic numbers
+        times: Time array
+        output_prefix: Output file prefix
+        view_elev: Camera elevation
+        view_azim: Camera azimuth
+        dpi: Resolution
+        crystal_colors: Crystal color scheme
+        boundary_style: Boundary style
+
+    Returns:
+        List of saved file paths
+    """
+    timesteps = [0.0, 0.25, 0.5, 0.75, 1.0]
+    step_indices = [int(t * (len(times) - 1)) for t in timesteps]
+
+    # Use final frame positions for consistent axis limits
+    final_pos = trajectory[-1]
+
+    saved_files = []
+    for t, step_idx in zip(timesteps, step_indices):
+        fig = plt.figure(figsize=(10, 10), dpi=dpi)
+        ax = fig.add_subplot(111, projection='3d')
+
+        positions = trajectory[step_idx]
+        alpha = 0.3 + 0.7 * t  # Fade in from noise to structure
+
+        render_crystal(ax, positions, atomic_nums,
+                      title=f't = {t:.2f}', alpha=alpha,
+                      view_elev=view_elev, view_azim=view_azim,
+                      crystal_colors=crystal_colors,
+                      boundary_style=boundary_style)
+        set_axis_limits_with_margin(ax, final_pos, margin=1.0)
+
+        output_path = f"{output_prefix}_t{t:.2f}.png"
+        plt.savefig(output_path, dpi=dpi, bbox_inches='tight',
+                    facecolor='white', edgecolor='none')
+        plt.close(fig)
+        saved_files.append(output_path)
+        print(f"Saved: {output_path}")
+
+    return saved_files
+
+
+def create_crystal_animation(trajectory, atomic_nums, times,
+                              output_path=None, fps=20, pause_frames=40,
+                              view_elev=15, view_azim=-45, dpi=200,
+                              crystal_colors=None, boundary_style=None):
+    """
+    Create animation of crystal diffusion process.
+
+    Args:
+        trajectory: Position trajectory array (T x N x 3)
+        atomic_nums: Atomic numbers
+        times: Time array
+        output_path: Output GIF path
+        fps: Frames per second
+        pause_frames: Number of frames to pause at end
+        view_elev: Camera elevation
+        view_azim: Camera azimuth
+        dpi: Resolution
+        crystal_colors: Crystal color scheme
+        boundary_style: Boundary style
+
+    Returns:
+        Animation object
+    """
+    fig = plt.figure(figsize=(10, 10), dpi=dpi)
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Use final frame positions for consistent axis limits
+    final_pos = trajectory[-1]
+
+    total_frames = len(times) + pause_frames
+
+    def update(frame):
+        ax.clear()
+        traj_frame = min(frame, len(times) - 1)
+        t = times[traj_frame]
+        positions = trajectory[traj_frame]
+        alpha = 0.3 + 0.7 * t
+
+        render_crystal(ax, positions, atomic_nums,
+                      title=f'Crystal Diffusion (t = {t:.2f})', alpha=alpha,
+                      view_elev=view_elev, view_azim=view_azim,
+                      crystal_colors=crystal_colors,
+                      boundary_style=boundary_style)
+        set_axis_limits_with_margin(ax, final_pos, margin=1.0)
+        return ax,
+
+    anim = FuncAnimation(fig, update, frames=total_frames, interval=1000/fps, blit=False)
+
+    if output_path:
+        anim.save(output_path, writer='pillow', fps=fps, dpi=dpi)
+        print(f"Saved: {output_path}")
+
+    plt.close(fig)
+    return anim
+
+
+def run_crystal_pipeline(cfg):
+    """
+    Run the crystal diffusion visualization pipeline.
+
+    Args:
+        cfg: DiffusionConfig object
+    """
+    from ase.io import read
+    from ase.build import make_supercell
+
+    print("=" * 60)
+    print(f"Crystal Diffusion Visualization - {cfg.crystal_type.upper()}")
+    print("=" * 60)
+
+    # Load structure
+    atoms = read(cfg.input_file)
+
+    # Apply supercell if specified
+    if cfg.supercell_matrix is not None:
+        atoms = make_supercell(atoms, cfg.supercell_matrix)
+
+    positions = atoms.get_positions()
+    atomic_nums = atoms.get_atomic_numbers()
+
+    print(f"\nFormula: {atoms.get_chemical_formula()}")
+    print(f"Total atoms: {len(positions)}")
+    print(f"Crystal type: {cfg.crystal_type}")
+
+    # Generate trajectory
+    traj_cfg = cfg.trajectory_config
+    print("\nGenerating unconditional diffusion trajectory...")
+    trajectory, times = create_unconditional_trajectory(
+        positions,
+        num_steps=traj_cfg.get('num_steps', 30),
+        noise_scale=traj_cfg.get('noise_scale', 1.5)
+    )
+
+    # Generate frames
+    print(f"\nGenerating trajectory frames (elev={cfg.view_elev}, azim={cfg.view_azim}, dpi={cfg.dpi})...")
+    output_prefix = str(cfg.figures_dir / "crystal_diffusion")
+
+    save_crystal_trajectory_frames(
+        trajectory, atomic_nums, times,
+        output_prefix=output_prefix,
+        view_elev=cfg.view_elev, view_azim=cfg.view_azim, dpi=cfg.dpi,
+        crystal_colors=cfg.crystal_colors,
+        boundary_style=cfg.boundary_style
+    )
+
+    # Generate animation if requested
+    if cfg.create_gif:
+        print(f"\nGenerating animation (dpi={cfg.dpi})...")
+        anim_cfg = cfg.animation_config
+        create_crystal_animation(
+            trajectory, atomic_nums, times,
+            output_path=str(cfg.figures_dir / "crystal_diffusion.gif"),
+            fps=anim_cfg.get('fps', 20),
+            pause_frames=anim_cfg.get('pause_frames', 40),
+            view_elev=cfg.view_elev, view_azim=cfg.view_azim, dpi=cfg.dpi,
+            crystal_colors=cfg.crystal_colors,
+            boundary_style=cfg.boundary_style
+        )
+
+    print("\n" + "=" * 60)
+    print("Crystal visualization complete!")
+    print(f"Output saved to: {cfg.figures_dir}/")
+    print("=" * 60)
+
+
+# ============================================================================
 # MAIN PIPELINE
 # ============================================================================
 
@@ -319,6 +535,11 @@ def main():
 
     if cfg.input_file is None:
         raise ValueError("input_file, input_files, or mode.input_file is required")
+
+    # Dispatch to crystal pipeline for unconditional diffusion
+    if cfg.mode == "crystal":
+        run_crystal_pipeline(cfg)
+        return
 
     print("=" * 60)
     print(f"Diffusion Visualization - {cfg.mode.upper()}")

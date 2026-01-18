@@ -14,6 +14,7 @@ from src.utils import (
     get_framework_colors,
     get_adsorbate_colors,
     get_boundary_style,
+    get_crystal_colors,
 )
 
 
@@ -53,6 +54,18 @@ class VisualizationConfig:
     input_files: List[str]
     input_file: Optional[str]
 
+    # Structure type (controls color scheme: "adsorbate", "slab", "mof", "framework")
+    structure_type: str
+
+    # Rendering options
+    show_shadow: bool
+    glossy: bool
+    margin: float
+    size_scale: float
+    figsize: Tuple[int, int]
+    transparent: bool
+    show_title: bool
+
 
 @dataclass
 class DiffusionConfig(VisualizationConfig):
@@ -62,6 +75,8 @@ class DiffusionConfig(VisualizationConfig):
     create_gif: bool
     trajectory_config: Dict[str, Any]
     animation_config: Dict[str, Any]
+    crystal_type: str
+    crystal_colors: Dict[int, str]
 
 
 # ============================================================================
@@ -135,6 +150,14 @@ def parse_visualization_config(config: Dict[str, Any]) -> VisualizationConfig:
         adsorbate_index=vis_config.get('adsorbate_index'),
         input_files=input_files,
         input_file=input_file,
+        structure_type=vis_config.get('structure_type', 'framework'),
+        show_shadow=vis_config.get('show_shadow', True),
+        glossy=vis_config.get('glossy', True),
+        margin=vis_config.get('margin', 1.0),
+        size_scale=vis_config.get('size_scale', 1.0),
+        figsize=tuple(vis_config.get('figsize', [10, 10])),
+        transparent=vis_config.get('transparent', False),
+        show_title=vis_config.get('show_title', True),
     )
 
 
@@ -190,6 +213,9 @@ def parse_diffusion_config(config: Dict[str, Any]) -> DiffusionConfig:
     if isolation_method is None:
         isolation_method = config.get('isolation_method', 'element')
 
+    # Crystal type for unconditional diffusion
+    crystal_type = config.get('crystal_type', 'organic')
+
     return DiffusionConfig(
         output_dir=output_dir,
         figures_dir=figures_dir,
@@ -208,9 +234,19 @@ def parse_diffusion_config(config: Dict[str, Any]) -> DiffusionConfig:
         adsorbate_index=ads_index,
         input_files=input_files,
         input_file=input_file,
+        structure_type=vis_config.get('structure_type', 'framework'),
+        show_shadow=vis_config.get('show_shadow', True),
+        glossy=vis_config.get('glossy', True),
+        margin=vis_config.get('margin', 1.0),
+        size_scale=vis_config.get('size_scale', 1.0),
+        figsize=tuple(vis_config.get('figsize', [10, 10])),
+        transparent=vis_config.get('transparent', False),
+        show_title=vis_config.get('show_title', True),
         mode=mode,
         random_seed=config.get('random_seed', 42),
         create_gif=config.get('create_gif', False),
         trajectory_config=config.get('trajectory', {}),
         animation_config=config.get('animation', {}),
+        crystal_type=crystal_type,
+        crystal_colors=get_crystal_colors(crystal_type),
     )

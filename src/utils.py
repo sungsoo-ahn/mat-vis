@@ -72,6 +72,27 @@ ADSORBATE_SCHEMES = {
     },
 }
 
+# Crystal color schemes (unified coloring for unconditional diffusion)
+CRYSTAL_SCHEMES = {
+    'organic': {  # Warm, carbon-focused
+        1: '#E8E8E8',   # H - light gray
+        6: '#2D5016',   # C - forest green
+        7: '#1E3A5F',   # N - navy blue
+        8: '#8B1A1A',   # O - deep red
+        16: '#8B7500',  # S - gold
+    },
+    'inorganic': {  # Cool, metallic
+        1: '#C0C0C0',   # H - silver
+        6: '#404040',   # C - dark gray
+        7: '#4060A0',   # N - steel blue
+        8: '#A03030',   # O - brick red
+        22: '#607090',  # Ti - titanium gray
+        26: '#B06020',  # Fe - rust
+        46: '#308080',  # Pd - teal
+        48: '#A09030',  # Cd - gold
+    },
+}
+
 # Boundary schemes
 BOUNDARY_SCHEMES = {
     'none': {'edge': 'none', 'linewidth': 0},
@@ -86,6 +107,7 @@ BOUNDARY_SCHEMES = {
 DEFAULT_FRAMEWORK_SCHEME = 'cool_gray'
 DEFAULT_ADSORBATE_SCHEME = 'mint_coral'
 DEFAULT_BOUNDARY_SCHEME = 'thin_dark'
+DEFAULT_CRYSTAL_SCHEME = 'organic'
 
 
 # ============================================================================
@@ -99,6 +121,7 @@ COVALENT_RADII = {
     7: 0.71,   # N
     8: 0.66,   # O
     16: 1.05,  # S
+    22: 1.60,  # Ti
     26: 1.32,  # Fe
     46: 1.39,  # Pd
     48: 1.44,  # Cd
@@ -237,3 +260,10 @@ def get_boundary_style(scheme_name=None):
     if scheme_name is None:
         scheme_name = DEFAULT_BOUNDARY_SCHEME
     return BOUNDARY_SCHEMES.get(scheme_name, BOUNDARY_SCHEMES[DEFAULT_BOUNDARY_SCHEME])
+
+
+def get_crystal_colors(scheme_name=None):
+    """Get crystal color scheme by name (organic or inorganic)."""
+    if scheme_name is None:
+        scheme_name = DEFAULT_CRYSTAL_SCHEME
+    return CRYSTAL_SCHEMES.get(scheme_name, CRYSTAL_SCHEMES[DEFAULT_CRYSTAL_SCHEME])

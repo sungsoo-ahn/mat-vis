@@ -132,7 +132,9 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
                              isolation_config=None, adsorbate_shift=None,
                              adsorbate_index=None,
                              framework_colors=None, adsorbate_colors=None,
-                             boundary_style=None):
+                             boundary_style=None, structure_type="framework",
+                             show_shadow=True, glossy=True, margin=1.0,
+                             size_scale=1.0, transparent=False, show_title=True):
     """
     Visualize a structure file (CIF or XYZ).
 
@@ -156,6 +158,15 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
         framework_colors: Pre-resolved framework color dict (overrides framework_scheme)
         adsorbate_colors: Pre-resolved adsorbate color dict (overrides adsorbate_scheme)
         boundary_style: Pre-resolved boundary style dict (overrides boundary_scheme)
+        structure_type: Type of structure ("adsorbate", "slab", "mof", "framework").
+                        When "adsorbate" and separate_adsorbate=False, uses adsorbate_colors.
+        show_shadow: Whether to render shadows on atoms
+        glossy: Whether to render highlight and specular effects (False for flat spheres)
+        margin: Margin around structure for axis limits
+        size_scale: Scale factor for atom sizes
+        figsize: Figure size (width, height)
+        transparent: Whether to save with transparent background
+        show_title: Whether to display title on figure
 
     Returns:
         Figure object (or dict of figures if plot_separate=True)
@@ -179,8 +190,22 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
         positions, numbers, formula = load_structure(
             file_path, supercell_matrix=supercell_matrix, separate_adsorbate=False
         )
-        framework_pos, framework_nums = positions, numbers
-        ads_pos, ads_nums = np.array([]).reshape(0, 3), np.array([])
+        # For adsorbate structure type, render as adsorbate (bright colors)
+        if structure_type == "adsorbate":
+            framework_pos, framework_nums = np.array([]).reshape(0, 3), np.array([])
+            ads_pos, ads_nums = positions, numbers
+        else:
+            framework_pos, framework_nums = positions, numbers
+            ads_pos, ads_nums = np.array([]).reshape(0, 3), np.array([])
+
+    # Determine title based on structure_type
+    structure_titles = {
+        "adsorbate": "Adsorbate",
+        "slab": "Slab",
+        "mof": "MOF",
+        "framework": formula,
+    }
+    title = structure_titles.get(structure_type, formula)
 
     # Compute shared axis limits for consistent views
     all_pos = np.vstack([framework_pos, ads_pos]) if len(ads_pos) > 0 else framework_pos
@@ -199,8 +224,11 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
                         title="Framework", view_elev=view_elev, view_azim=view_azim,
                         framework_colors=framework_colors,
                         adsorbate_colors=adsorbate_colors,
-                        boundary_style=boundary_style)
-        set_axis_limits_with_margin(ax_fw, all_pos, margin=1.0)
+                        boundary_style=boundary_style,
+                        show_shadow=show_shadow,
+                        glossy=glossy,
+                        size_scale=size_scale)
+        set_axis_limits_with_margin(ax_fw, all_pos, margin=margin)
         if output_path:
             fw_path = output_dir / f"{output_stem}_framework.png"
             plt.savefig(fw_path, dpi=dpi, bbox_inches='tight',
@@ -215,8 +243,11 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
                         title="Adsorbate", view_elev=view_elev, view_azim=view_azim,
                         framework_colors=framework_colors,
                         adsorbate_colors=adsorbate_colors,
-                        boundary_style=boundary_style)
-        set_axis_limits_with_margin(ax_ads, all_pos, margin=1.0)
+                        boundary_style=boundary_style,
+                        show_shadow=show_shadow,
+                        glossy=glossy,
+                        size_scale=size_scale)
+        set_axis_limits_with_margin(ax_ads, all_pos, margin=margin)
         if output_path:
             ads_path = output_dir / f"{output_stem}_adsorbate.png"
             plt.savefig(ads_path, dpi=dpi, bbox_inches='tight',
@@ -228,11 +259,14 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
         fig_combined = plt.figure(figsize=figsize, dpi=dpi)
         ax_combined = fig_combined.add_subplot(111, projection='3d')
         render_structure(ax_combined, framework_pos, framework_nums, ads_pos, ads_nums,
-                        title=formula, view_elev=view_elev, view_azim=view_azim,
+                        title=title, view_elev=view_elev, view_azim=view_azim,
                         framework_colors=framework_colors,
                         adsorbate_colors=adsorbate_colors,
-                        boundary_style=boundary_style)
-        set_axis_limits_with_margin(ax_combined, all_pos, margin=1.0)
+                        boundary_style=boundary_style,
+                        show_shadow=show_shadow,
+                        glossy=glossy,
+                        size_scale=size_scale)
+        set_axis_limits_with_margin(ax_combined, all_pos, margin=margin)
         if output_path:
             combined_path = output_dir / f"{output_stem}_combined.png"
             plt.savefig(combined_path, dpi=dpi, bbox_inches='tight',
@@ -247,16 +281,20 @@ def visualize_structure_file(file_path, output_path=None, supercell_matrix=None,
     ax = fig.add_subplot(111, projection='3d')
 
     render_structure(ax, framework_pos, framework_nums, ads_pos, ads_nums,
-                    title=formula, view_elev=view_elev, view_azim=view_azim,
+                    title=title if show_title else "", view_elev=view_elev, view_azim=view_azim,
                     framework_colors=framework_colors,
                     adsorbate_colors=adsorbate_colors,
-                    boundary_style=boundary_style)
+                    boundary_style=boundary_style,
+                    show_shadow=show_shadow,
+                    glossy=glossy,
+                    size_scale=size_scale)
 
-    set_axis_limits_with_margin(ax, all_pos, margin=1.0)
+    set_axis_limits_with_margin(ax, all_pos, margin=margin)
 
     if output_path:
+        facecolor = 'none' if transparent else 'white'
         plt.savefig(output_path, dpi=dpi, bbox_inches='tight',
-                    facecolor='white', edgecolor='none')
+                    facecolor=facecolor, edgecolor='none', transparent=transparent)
         print(f"Saved: {output_path}")
 
     return fig
@@ -307,6 +345,14 @@ def main():
             framework_colors=cfg.framework_colors,
             adsorbate_colors=cfg.adsorbate_colors,
             boundary_style=cfg.boundary_style,
+            structure_type=cfg.structure_type,
+            show_shadow=cfg.show_shadow,
+            glossy=cfg.glossy,
+            margin=cfg.margin,
+            size_scale=cfg.size_scale,
+            figsize=cfg.figsize,
+            transparent=cfg.transparent,
+            show_title=cfg.show_title,
         )
 
     print("\n" + "=" * 60)
