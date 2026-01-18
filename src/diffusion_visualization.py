@@ -53,12 +53,17 @@ def create_conditional_trajectory(slab_target, ads_target, num_steps=50, noise_s
     slab_traj = np.zeros((num_steps + 1, *slab_target.shape))
     ads_traj = np.zeros((num_steps + 1, *ads_target.shape))
 
-    # Compute noise std from target's spatial extent
-    slab_std = slab_target.std(axis=0).mean() * noise_scale
+    # Center all positions at origin for visualization
+    all_positions = np.vstack([slab_target, ads_target])
+    center = all_positions.mean(axis=0)
+    centered_slab = slab_target - center
+    centered_ads = ads_target - center
 
-    # Sample fixed noise vectors centered at structure centroid
-    slab_center = slab_target.mean(axis=0)
-    slab_noise = slab_center + np.random.randn(*slab_target.shape) * slab_std
+    # Compute noise std from target's spatial extent
+    slab_std = centered_slab.std(axis=0).mean() * noise_scale
+
+    # Sample fixed noise vectors centered at origin
+    slab_noise = np.random.randn(*centered_slab.shape) * slab_std
 
     for i, t in enumerate(times):
         # Cosine schedule: alpha_bar goes from 0 (t=0) to 1 (t=1)
@@ -68,15 +73,15 @@ def create_conditional_trajectory(slab_target, ads_target, num_steps=50, noise_s
         signal_weight = np.sqrt(alpha_bar)
         noise_weight = np.sqrt(1 - alpha_bar)
 
-        slab_traj[i] = signal_weight * slab_target + noise_weight * slab_noise
+        slab_traj[i] = signal_weight * centered_slab + noise_weight * slab_noise
 
         # Adsorbate stays fixed (conditional generation)
         if fixed_adsorbate:
-            ads_traj[i] = ads_target
+            ads_traj[i] = centered_ads
         else:
-            ads_std = ads_target.std(axis=0).mean() * noise_scale if len(ads_target) > 1 else slab_std * 0.5
-            ads_noise = np.random.randn(*ads_target.shape) * ads_std
-            ads_traj[i] = signal_weight * ads_target + noise_weight * ads_noise
+            ads_std = centered_ads.std(axis=0).mean() * noise_scale if len(centered_ads) > 1 else slab_std * 0.5
+            ads_noise = np.random.randn(*centered_ads.shape) * ads_std
+            ads_traj[i] = signal_weight * centered_ads + noise_weight * ads_noise
 
     return slab_traj, ads_traj, times
 
@@ -98,12 +103,16 @@ def create_unconditional_trajectory(target_positions, num_steps=50, noise_scale=
     times = np.linspace(0, 1, num_steps + 1)
     trajectory = np.zeros((num_steps + 1, *target_positions.shape))
 
-    # Compute noise std from target's spatial extent
-    pos_std = target_positions.std(axis=0).mean() * noise_scale
-
-    # Sample fixed noise vector centered at structure centroid
+    # Center target positions at origin for visualization
     center = target_positions.mean(axis=0)
-    noise = center + np.random.randn(*target_positions.shape) * pos_std
+    centered_target = target_positions - center
+
+    # Compute noise std from target's spatial extent
+    pos_std = centered_target.std(axis=0).mean() * noise_scale
+
+    # Sample fixed noise vector and center it at origin (same as structure)
+    noise = np.random.randn(*centered_target.shape) * pos_std
+    noise = noise - noise.mean(axis=0)  # Center noise at origin
 
     for i, t in enumerate(times):
         # Cosine schedule: alpha_bar goes from 0 (t=0) to 1 (t=1)
@@ -113,7 +122,7 @@ def create_unconditional_trajectory(target_positions, num_steps=50, noise_scale=
         signal_weight = np.sqrt(alpha_bar)
         noise_weight = np.sqrt(1 - alpha_bar)
 
-        trajectory[i] = signal_weight * target_positions + noise_weight * noise
+        trajectory[i] = signal_weight * centered_target + noise_weight * noise
 
     return trajectory, times
 
