@@ -1,0 +1,22 @@
+# Slab structure visualization
+# Uses muted framework colors (cool_gray scheme)
+output_dir: "data/slab/structure"
+
+# Color schemes
+framework_scheme: "cool_gray"
+boundary_scheme: "thin_dark"
+
+# Input file (update path to your slab file)
+input_files:
+  - "examples/slab.cif"
+
+# Visualization settings
+visualization:
+  structure_type: "slab"
+  separate_adsorbate: false
+  show_shadow: false
+  glossy: false
+  tiling: [2, 2, 1]
+  view_elev: 35
+  view_azim: -50
+  dpi: 200

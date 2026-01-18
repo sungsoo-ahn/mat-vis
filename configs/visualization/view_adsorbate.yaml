@@ -1,0 +1,24 @@
+# Adsorbate structure visualization
+# Uses bright adsorbate colors (mint_coral scheme)
+output_dir: "data/adsorbate/structure"
+
+# Color schemes
+adsorbate_scheme: "mint_coral"
+boundary_scheme: "thin_dark"
+
+# Input file (update path to your adsorbate file)
+input_files:
+  - "examples/adsorbate.xyz"
+
+# Visualization settings
+visualization:
+  structure_type: "adsorbate"
+  separate_adsorbate: false
+  show_shadow: false
+  glossy: false
+  view_elev: 35
+  view_azim: -50
+  dpi: 200
+  margin: 0.5
+  size_scale: 15.0
+  figsize: [6, 6]

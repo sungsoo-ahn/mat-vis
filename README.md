@@ -2,6 +2,24 @@
 
 A research codebase for visualizing and manipulating MOF (Metal-Organic Framework) and catalyst structures, with a focus on conditional diffusion process visualization.
 
+## Visual Examples
+
+### MOF Diffusion Visualization
+Conditional generation process where adsorbates (CO₂) remain fixed while the MOF framework is generated around them:
+
+![MOF Diffusion](docs/gallery/mof_diffusion.gif)
+
+### Catalyst Diffusion Visualization
+Conditional generation process for catalyst structures with adsorbate molecules:
+
+![Catalyst Diffusion](docs/gallery/catalyst_diffusion.gif)
+
+### Static Structure Views
+
+| MOF Structure | Catalyst Structure |
+|:---:|:---:|
+| ![MOF](docs/gallery/mof_diffusion_t1.00.png) | ![Catalyst](docs/gallery/catalyst_diffusion_t1.00.png) |
+
 ## Features
 
 - **Adsorbate Isolation**: Graph-based connectivity analysis to separate adsorbates from framework structures
@@ -95,11 +113,14 @@ mat-vis/
 │   │   ├── run_catalyst_diffusion.sh   # Run catalyst diffusion viz
 │   │   └── view_structures.sh          # View static structures
 │   └── run_isolate_adsorbate.sh
-├── data/                               # Data and outputs (gitignored)
-│   └── sample/                         # Sample structures (git-tracked)
-│       ├── mof_clean.xyz
-│       ├── co2_with_cell.xyz
-│       └── catalyst/                   # Sample catalyst structures
+├── examples/                           # Sample input structures (git-tracked)
+│   ├── mof.cif
+│   ├── catalyst.cif
+│   ├── slab.cif
+│   └── adsorbates/                     # Sample adsorbate molecules
+├── docs/
+│   └── gallery/                        # Gallery images for README
+├── data/                               # Outputs only (fully gitignored)
 ├── scratch/                            # Experimental code (gitignored)
 └── README.md
 ```
@@ -193,8 +214,8 @@ boundary_scheme: "thin_dark"
 
 # MOF-specific
 mof:
-  framework_file: "data/sample/mof_clean.xyz"
-  adsorbate_file: "data/sample/co2_with_cell.xyz"
+  framework_file: "examples/mof.cif"
+  adsorbate_file: "examples/adsorbate.xyz"
   supercell_matrix: [[1, 0, 0], [0, 2, 0], [0, 0, 2]]
   adsorbate_shift: [0, 0, 1]
   view_elev: -10
@@ -239,11 +260,13 @@ create_gif: false
 
 ## Sample Data
 
-The `data/sample/` directory contains example structures:
+The `examples/` directory contains example input structures:
 
-- **MOF**: `mof_clean.xyz` (clean framework), `mof.cif` (with adsorbate)
-- **Adsorbates**: `co2_with_cell.xyz`, `adsorbate_CO2.xyz`
-- **Catalysts**: `catalyst/1234.cif`, `catalyst/3.cif`, etc.
+- **MOF**: `mof.cif` (framework with adsorbate)
+- **Catalyst**: `catalyst.cif` (surface with adsorbate)
+- **Slab**: `slab.cif` (bare surface)
+- **Crystals**: `molecular_crystal.cif`, `inorganic_crystal.cif`
+- **Adsorbates**: `adsorbate.xyz`, `adsorbates/*.xyz` (O, OH, OOH, H2O, O2, H2O2)
 
 ## Development Workflow
 

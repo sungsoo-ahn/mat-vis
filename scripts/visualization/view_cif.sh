@@ -6,7 +6,7 @@
 #   bash scripts/visualization/view_cif.sh <path/to/file.cif> [output_dir]
 #
 # Examples:
-#   bash scripts/visualization/view_cif.sh data/sample/catalyst/1234.cif
+#   bash scripts/visualization/view_cif.sh examples/catalyst.cif
 #   bash scripts/visualization/view_cif.sh my_structure.cif data/my_viz
 #
 
@@ -16,7 +16,7 @@ if [ -z "$1" ]; then
     echo "Usage: bash scripts/visualization/view_cif.sh <path/to/file.cif> [output_dir]"
     echo ""
     echo "Examples:"
-    echo "  bash scripts/visualization/view_cif.sh data/sample/catalyst/1234.cif"
+    echo "  bash scripts/visualization/view_cif.sh examples/catalyst.cif"
     echo "  bash scripts/visualization/view_cif.sh my_structure.cif data/my_viz"
     exit 1
 fi

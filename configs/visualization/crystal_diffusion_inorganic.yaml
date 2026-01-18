@@ -1,0 +1,29 @@
+# Inorganic crystal diffusion visualization (unconditional)
+output_dir: "data/crystal/diffusion_inorganic"
+
+# Mode: crystal for unconditional diffusion
+mode: "crystal"
+
+# Crystal type: "organic" or "inorganic"
+crystal_type: "inorganic"
+
+# Input file (TiO2 rutile)
+input_file: "examples/inorganic_crystal.cif"
+
+# Visualization settings
+visualization:
+  tiling: [2, 2, 3]
+  view_elev: 20
+  view_azim: -45
+  dpi: 200
+
+# Trajectory settings
+trajectory:
+  num_steps: 30
+  noise_scale: 1.5
+
+# Animation settings
+create_gif: true
+animation:
+  fps: 20
+  pause_frames: 40

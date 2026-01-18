@@ -8,10 +8,11 @@ boundary_scheme: "thin_dark"
 
 # Input file
 input_files:
-  - "data/sample/mof.cif"
+  - "examples/mof.cif"
 
 # Visualization settings
 visualization:
+  structure_type: "mof"
   separate_adsorbate: true
   plot_separate: true
   isolation_method: "connectivity"

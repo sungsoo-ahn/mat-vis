@@ -1,0 +1,30 @@
+# Multiple adsorbate visualization
+output_dir: "data/adsorbates/structure"
+
+# Color schemes - bright colors for adsorbates
+adsorbate_scheme: "mint_coral"
+boundary_scheme: "thin_dark"
+
+# Input files
+input_files:
+  - "examples/adsorbates/O.xyz"
+  - "examples/adsorbates/OH.xyz"
+  - "examples/adsorbates/OOH.xyz"
+  - "examples/adsorbates/H2O.xyz"
+  - "examples/adsorbates/O2.xyz"
+  - "examples/adsorbates/H2O2.xyz"
+
+# Visualization settings
+visualization:
+  structure_type: "adsorbate"
+  separate_adsorbate: false
+  show_shadow: false
+  glossy: true
+  view_elev: 35
+  view_azim: -50
+  dpi: 200
+  margin: 0.3
+  size_scale: 35.0
+  figsize: [5, 5]
+  transparent: true
+  show_title: false

@@ -8,7 +8,7 @@ boundary_scheme: "thin_dark"
 
 # Input file
 input_files:
-  - "data/sample/catalyst.cif"
+  - "examples/catalyst.cif"
 
 # Visualization settings
 visualization:

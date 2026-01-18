@@ -2,7 +2,7 @@
 output_dir: "data/isolate_adsorbate"
 
 # Input MOF file containing framework + adsorbates
-input_file: "data/sample/mof.cif"
+input_file: "examples/mof.cif"
 
 # Isolation parameters
 isolation:
