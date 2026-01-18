@@ -56,8 +56,9 @@ def create_conditional_trajectory(slab_target, ads_target, num_steps=50, noise_s
     # Compute noise std from target's spatial extent
     slab_std = slab_target.std(axis=0).mean() * noise_scale
 
-    # Sample fixed noise vectors
-    slab_noise = np.random.randn(*slab_target.shape) * slab_std
+    # Sample fixed noise vectors centered at structure centroid
+    slab_center = slab_target.mean(axis=0)
+    slab_noise = slab_center + np.random.randn(*slab_target.shape) * slab_std
 
     for i, t in enumerate(times):
         # Cosine schedule: alpha_bar goes from 0 (t=0) to 1 (t=1)
@@ -100,8 +101,9 @@ def create_unconditional_trajectory(target_positions, num_steps=50, noise_scale=
     # Compute noise std from target's spatial extent
     pos_std = target_positions.std(axis=0).mean() * noise_scale
 
-    # Sample fixed noise vector
-    noise = np.random.randn(*target_positions.shape) * pos_std
+    # Sample fixed noise vector centered at structure centroid
+    center = target_positions.mean(axis=0)
+    noise = center + np.random.randn(*target_positions.shape) * pos_std
 
     for i, t in enumerate(times):
         # Cosine schedule: alpha_bar goes from 0 (t=0) to 1 (t=1)
