@@ -38,7 +38,7 @@ trajectory:
   noise_scale: 1.5
   fixed_adsorbate: true
 
-create_gif: true
+create_gif: false
 
 animation:
   fps: 20

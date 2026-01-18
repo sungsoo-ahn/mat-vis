@@ -23,7 +23,7 @@ trajectory:
   noise_scale: 1.5
 
 # Animation settings
-create_gif: true
+create_gif: false
 animation:
   fps: 20
   pause_frames: 40

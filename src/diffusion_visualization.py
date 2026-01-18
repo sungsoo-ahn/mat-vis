@@ -19,8 +19,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
+from ase import Atoms
+from ase.io import write as ase_write
+
 from src.rendering import render_structure, render_crystal, set_axis_limits_with_margin
 from src.isolate_adsorbate import load_and_isolate
+
+
+def save_structure_file(positions, atomic_nums, output_path):
+    """
+    Save structure to XYZ file.
+
+    Args:
+        positions: Atom positions (Nx3 array)
+        atomic_nums: Atomic numbers
+        output_path: Output file path (without extension)
+    """
+    atoms = Atoms(numbers=atomic_nums, positions=positions)
+    xyz_path = f"{output_path}.xyz"
+    ase_write(xyz_path, atoms, format='xyz')
+    print(f"Saved: {xyz_path}")
 
 
 # ============================================================================
@@ -185,6 +203,11 @@ def save_trajectory_frames(slab_traj, slab_nums, ads_traj, ads_nums, times,
         saved_files.append(output_path)
         print(f"Saved: {output_path}")
 
+        # Save combined structure as XYZ
+        combined_pos = np.vstack([slab_pos, ads_pos])
+        combined_nums = np.concatenate([slab_nums, ads_nums])
+        save_structure_file(combined_pos, combined_nums, f"{output_prefix}_t{t:.2f}")
+
     return saved_files
 
 
@@ -243,6 +266,7 @@ def save_separate_trajectory_frames(slab_traj, slab_nums, ads_traj, ads_nums, ti
         plt.close(fig_fw)
         saved_files.append(fw_path)
         print(f"Saved: {fw_path}")
+        save_structure_file(slab_pos, slab_nums, f"{output_prefix}_framework_t{t:.2f}")
 
         # 2. Adsorbate only
         fig_ads = plt.figure(figsize=(10, 10), dpi=dpi)
@@ -260,6 +284,7 @@ def save_separate_trajectory_frames(slab_traj, slab_nums, ads_traj, ads_nums, ti
         plt.close(fig_ads)
         saved_files.append(ads_path)
         print(f"Saved: {ads_path}")
+        save_structure_file(ads_pos, ads_nums, f"{output_prefix}_adsorbate_t{t:.2f}")
 
         # 3. Combined
         fig_combined = plt.figure(figsize=(10, 10), dpi=dpi)
@@ -277,6 +302,9 @@ def save_separate_trajectory_frames(slab_traj, slab_nums, ads_traj, ads_nums, ti
         plt.close(fig_combined)
         saved_files.append(combined_path)
         print(f"Saved: {combined_path}")
+        combined_pos = np.vstack([slab_pos, ads_pos])
+        combined_nums = np.concatenate([slab_nums, ads_nums])
+        save_structure_file(combined_pos, combined_nums, f"{output_prefix}_combined_t{t:.2f}")
 
     return saved_files
 
@@ -394,6 +422,9 @@ def save_crystal_trajectory_frames(trajectory, atomic_nums, times,
         plt.close(fig)
         saved_files.append(output_path)
         print(f"Saved: {output_path}")
+
+        # Save structure as XYZ
+        save_structure_file(positions, atomic_nums, f"{output_prefix}_t{t:.2f}")
 
     return saved_files
 
